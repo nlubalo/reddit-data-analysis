@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: reddit
+    database: reddit
+    schema: main
+    tables:
+      - name: reddit_posts
+      - name: reddit_comments
+      - name: reddit_comments_replies

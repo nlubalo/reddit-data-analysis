@@ -1,0 +1,15 @@
+# example profiles.yml file
+reddit:
+  outputs:
+    dev:
+      type: duckdb
+      path: /Users/nancylubalo/Documents/personal/Reddit/reddit.db
+      threads: 4
+      extensions:
+        - httpfs
+        - parquet
+    prod:
+      type: duckdb
+      path: "md:reddit?motherduck_token={{env_var('MOTHERDUCK_TOKEN')}}"
+      threads: 1
+  target: prod

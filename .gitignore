@@ -1,0 +1,9 @@
+reddit_env/*
+.env
+data/*
+reddit.db
+__pycache__
+notebook.ipynb
+logs
+dbt_packages
+target
