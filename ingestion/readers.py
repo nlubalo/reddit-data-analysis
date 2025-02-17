@@ -9,18 +9,18 @@ from base_reader import BaseReader
 from pyspark.sql import SparkSession
 
 load_dotenv()
-os.environ['SPARK_HOME'] = '/opt/homebrew/opt/apache-spark/libexec'
-
-
+# os.environ['SPARK_HOME'] = '/opt/homebrew/opt/apache-spark/libexec'
 
 spark = SparkSession.builder \
     .appName("RedditPartitionedWrite") \
     .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
     .getOrCreate()
 timestamp_now = datetime.datetime.now().strftime("%Y-%m-%d")
+
+
 class RedditReader(BaseReader):
     def __init__(self, base_url: str,
-                 username: str, password:str,
+                 username: str, password: str,
                  app_id: str, app_secret: str,
                  app_name: str):
         self.base_url = base_url
@@ -40,8 +40,8 @@ class RedditReader(BaseReader):
             username=self.username,
             ratelimit_seconds=60
         )
-        return  reddit
-   
+        return reddit
+
     def extract_subreddit(self, post):
         data = {"post_title": post.title, 'post': post.selftext, 'url': post.url, 'created_at': post.created_utc,
                 'score': post.score, 'num_comments': post.num_comments, 'upvote_ratio': post.upvote_ratio,
@@ -56,17 +56,17 @@ class RedditReader(BaseReader):
         return data
 
     def extract_comments(self, comments):
-        comments_data ={'commnet_body': comments.body, 'comment_author_id': str(comments.author), 'created_at': comments.created_utc,
-                        'score': comments.score, 'comment_id': comments.id, 'parent_id': comments.parent_id,
-                        'submission_title': comments.submission.title,
-                        'submission_selftext': comments.submission.selftext, 'submission_id': comments.submission.id,
-                        'subreddit_id': comments.subreddit.id,
-                        'user_is_banned': comments.subreddit.user_is_banned,
-                        'user_is_contributor': comments.subreddit.user_is_contributor,'user_is_moderator': comments.subreddit.user_is_moderator,
-                        'user_is_subscriber': comments.subreddit.user_is_subscriber,'wiki_enabled': comments.subreddit.wiki_enabled, 'over18': comments.subreddit.over18,
-                        'num_subscribers': comments.subreddit.subscribers, 'subreddit_type': comments.subreddit.subreddit_type, 'dowload_date': timestamp_now}
+        comments_data = {'commnet_body': comments.body, 'comment_author_id': str(comments.author), 'created_at': comments.created_utc,
+                         'score': comments.score, 'comment_id': comments.id, 'parent_id': comments.parent_id,
+                         'submission_title': comments.submission.title,
+                         'submission_selftext': comments.submission.selftext, 'submission_id': comments.submission.id,
+                         'subreddit_id': comments.subreddit.id,
+                         'user_is_banned': comments.subreddit.user_is_banned,
+                         'user_is_contributor': comments.subreddit.user_is_contributor, 'user_is_moderator': comments.subreddit.user_is_moderator,
+                         'user_is_subscriber': comments.subreddit.user_is_subscriber, 'wiki_enabled': comments.subreddit.wiki_enabled, 'over18': comments.subreddit.over18,
+                         'num_subscribers': comments.subreddit.subscribers, 'subreddit_type': comments.subreddit.subreddit_type, 'dowload_date': timestamp_now}
         return comments_data
-    
+
     def extract_replies(self, replies, comment_id):
         replies_data = {'reply_body': replies.body, 'reply_author_id': str(replies.author), 'created_at': replies.created_utc,
                         'score': replies.score, 'reply_id': replies.id,
@@ -83,7 +83,7 @@ class RedditReader(BaseReader):
         auth = self.authenticate()
         subreddit = auth.subreddit("AmItheAsshole")
         for post in subreddit.hot(limit=limit):
-            data =self.extract_subreddit(post)
+            data = self.extract_subreddit(post)
             post_output.append(data)
             for comments in auth.submission(url=post.url).comments:
                 if isinstance(comments, MoreComments):
@@ -97,21 +97,20 @@ class RedditReader(BaseReader):
                     replies_output.append(reply_data)
         return post_comments,  post_output, replies_output
 
-
     def run_query(self, subreddit: dict):
         for subreddit, limit in subreddit.items():
-            comments, posts, replies_output = self.search_subreddit(subreddit, limit)
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d")  # Use hyphens instead of colons
+            comments, posts, replies_output = self.search_subreddit(
+                subreddit, limit)
+            timestamp = datetime.datetime.now().strftime(
+                "%Y-%m-%d")  # Use hyphens instead of colons
             df_comments = spark.createDataFrame(comments)
             df_posts = spark.createDataFrame(posts)
             df_replies = spark.createDataFrame(replies_output)
-            self.save_parquet(df_comments, f"data/comments/date={timestamp_now}")
+            self.save_parquet(
+                df_comments, f"data/comments/date={timestamp_now}")
             self.save_parquet(df_posts, f"data/posts/date={timestamp_now}")
-            self.save_parquet(df_replies, f"data/comment_replies/date={timestamp_now}")
-            #safe_filename = f"{subreddit}_{timestamp}.json"
-            #self.save_json(posts, f"data/posts/{safe_filename}")
-            #self.save_json(comments, f"data/comments/{safe_filename}")
-            #self.save_json(replies_output, f"data/comment_replies/{safe_filename}")
+            self.save_parquet(
+                df_replies, f"data/comment_replies/date={timestamp_now}")
 
     def save_parquet(self, data, path):
         data.write \
