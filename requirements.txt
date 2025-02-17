@@ -1,2 +1,4 @@
 psaw
 requests
+python-dotenv
+praw
